@@ -2,13 +2,16 @@ package com.example.moe;
 
 import android.annotation.SuppressLint;
 import android.content.Intent;
+import android.media.MediaPlayer;
 import android.net.Uri;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
+import android.widget.MediaController;
 import android.widget.TextView;
 import android.widget.VideoView;
 
@@ -38,8 +41,8 @@ public class ResultAdapter extends RecyclerView.Adapter<ResultAdapter.ResultView
         Result result = resultList.get(position);
         Log.d("ResultAdapter", "Displaying result " + result);
         holder.filename.setText(result.getFilename());
-        holder.episode.setText(result.getEpisode());
-        holder.similarity.setText(String.valueOf(result.getSimilarity()));
+        holder.episode.setText("Episode " + result.getEpisode());
+        holder.similarity.setText("Similarity: " + result.getSimilarity());
         //from 和 to 是以秒为单位的，我们将其转换为分钟,同时显示秒数，如23：45
         float from = result.getFrom();
         float to = result.getTo();
@@ -51,16 +54,19 @@ public class ResultAdapter extends RecyclerView.Adapter<ResultAdapter.ResultView
         holder.to.setText(String.format("%02d:%02d", toMin, toSec));
         // Load image using Glide
         Glide.with(holder.image.getContext()).load(result.getImage()).into(holder.image);
-        holder.button.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Uri videoUri = Uri.parse(result.getVideo());
-                Intent intent = new Intent(Intent.ACTION_VIEW, videoUri);
-                v.getContext().startActivity(intent);
-            }
-        });
+//        holder.button.setOnClickListener(new View.OnClickListener() {
+//            @Override
+//            public void onClick(View v) {
+//                Uri videoUri = Uri.parse(result.getVideo());
+//                Intent intent = new Intent(Intent.ACTION_VIEW, videoUri);
+//                v.getContext().startActivity(intent);
+//            }
+//        });
+        CustomMediaController mediaController = new CustomMediaController(holder.frameLayout.getContext());
+        holder.videoView.setMediaController(mediaController);
+        mediaController.setAnchorView(holder.frameLayout);
         holder.videoView.setVideoURI(Uri.parse(result.getVideo()));
-        holder.videoView.start();
+        //holder.videoView.start();
     }
 
     @Override
@@ -75,13 +81,12 @@ public class ResultAdapter extends RecyclerView.Adapter<ResultAdapter.ResultView
         TextView similarity;
         TextView from;
         TextView to;
-        //a url to the video
-        TextView video;
         //show an image
         ImageView image;
         // Define other views...
         Button button;
         VideoView videoView;
+        FrameLayout frameLayout;
         public ResultViewHolder(View itemView) {
             super(itemView);
             filename = itemView.findViewById(R.id.filename);
@@ -90,8 +95,9 @@ public class ResultAdapter extends RecyclerView.Adapter<ResultAdapter.ResultView
             from = itemView.findViewById(R.id.from);
             to = itemView.findViewById(R.id.to);
             image = itemView.findViewById(R.id.image);
-            button = itemView.findViewById(R.id.button);
+//            button = itemView.findViewById(R.id.button);
             videoView = itemView.findViewById(R.id.videoView);
+            frameLayout = itemView.findViewById(R.id.videoFrame);
             // Initialize other views...
         }
     }
