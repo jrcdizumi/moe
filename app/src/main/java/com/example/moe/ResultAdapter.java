@@ -2,10 +2,16 @@ package com.example.moe;
 
 import android.annotation.SuppressLint;
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
+import android.media.MediaMetadataRetriever;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.util.Log;
+import android.view.GestureDetector;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
@@ -16,9 +22,14 @@ import android.widget.TextView;
 import android.widget.VideoView;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.recyclerview.widget.RecyclerView;
+
+import java.util.HashMap;
 import java.util.List;
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.request.target.CustomTarget;
+import com.bumptech.glide.request.transition.Transition;
 
 public class ResultAdapter extends RecyclerView.Adapter<ResultAdapter.ResultViewHolder> {
 
@@ -54,6 +65,21 @@ public class ResultAdapter extends RecyclerView.Adapter<ResultAdapter.ResultView
         holder.to.setText(String.format("%02d:%02d", toMin, toSec));
         // Load image using Glide
         Glide.with(holder.image.getContext()).load(result.getImage()).into(holder.image);
+        Glide.with(holder.image.getContext())
+                .asBitmap()
+                .load(result.getImage())
+                .into(new CustomTarget<Bitmap>() {
+                    @Override
+                    public void onResourceReady(@NonNull Bitmap resource, @Nullable Transition<? super Bitmap> transition) {
+                        Drawable drawable = new BitmapDrawable(holder.image.getResources(), resource);
+                        holder.videoView.setBackground(drawable);
+                    }
+
+                    @Override
+                    public void onLoadCleared(@Nullable Drawable placeholder) {
+                        // Handle cleanup here
+                    }
+                });
 //        holder.button.setOnClickListener(new View.OnClickListener() {
 //            @Override
 //            public void onClick(View v) {
@@ -62,9 +88,6 @@ public class ResultAdapter extends RecyclerView.Adapter<ResultAdapter.ResultView
 //                v.getContext().startActivity(intent);
 //            }
 //        });
-        CustomMediaController mediaController = new CustomMediaController(holder.frameLayout.getContext());
-        holder.videoView.setMediaController(mediaController);
-        mediaController.setAnchorView(holder.frameLayout);
         holder.videoView.setVideoURI(Uri.parse(result.getVideo()));
         //holder.videoView.start();
     }
@@ -87,6 +110,10 @@ public class ResultAdapter extends RecyclerView.Adapter<ResultAdapter.ResultView
         Button button;
         VideoView videoView;
         FrameLayout frameLayout;
+
+        GestureDetector gestureDetector;
+
+        @SuppressLint("ClickableViewAccessibility")
         public ResultViewHolder(View itemView) {
             super(itemView);
             filename = itemView.findViewById(R.id.filename);
@@ -99,6 +126,41 @@ public class ResultAdapter extends RecyclerView.Adapter<ResultAdapter.ResultView
             videoView = itemView.findViewById(R.id.videoView);
             frameLayout = itemView.findViewById(R.id.videoFrame);
             // Initialize other views...
+            gestureDetector = new GestureDetector(itemView.getContext(), new GestureDetector.SimpleOnGestureListener() {
+                @Override
+                public boolean onDoubleTap(MotionEvent e) {
+                    if (videoView.isPlaying()) {
+                        videoView.pause();
+                    } else {
+                        videoView.start();
+                    }
+                    return true;
+                }
+            });
+
+            videoView.setOnTouchListener(new View.OnTouchListener() {
+                @Override
+                public boolean onTouch(View v, MotionEvent event) {
+                    gestureDetector.onTouchEvent(event);
+                    return true;
+                }
+            });
+            videoView.setOnPreparedListener(new MediaPlayer.OnPreparedListener() {
+                @Override
+                public void onPrepared(MediaPlayer mp) {
+                    // Set the background of the VideoView to null
+                    mp.setVolume(0, 0);
+                    videoView.setBackground(null);
+                    mp.start();
+                }
+            });
+            videoView.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
+                @Override
+                public void onCompletion(MediaPlayer mp) {
+                    // Restart the video when it reaches the end
+                    mp.start();
+                }
+            });
         }
     }
 }
